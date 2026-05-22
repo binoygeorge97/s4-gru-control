@@ -1,1 +1,177 @@
-# Default configuration placeholder
+# configs/default.yaml
+# Default configuration for S4-GRU microgrid control experiments
+
+# =============================================================================
+# GENERAL
+# =============================================================================
+
+project:
+  name: "s4_gru_control"
+  seed: 42
+  debug: false
+
+paths:
+  checkpoint_dir: "checkpoints"
+  s4_checkpoint_dir: "checkpoints/sweep"
+  controller_checkpoint_dir: "checkpoints/controllers"
+  s4_results_csv: "sweep_results.csv"
+  controller_results_csv: "gru_sweep_results.csv"
+
+# =============================================================================
+# WANDB
+# =============================================================================
+
+wandb:
+  enabled: true
+  project: "tacc_parallel_control"
+  s4_group: "s4_sweep"
+  controller_group: "gru_controller_sweep"
+  mode: "online"   # options: online, offline, disabled
+
+# =============================================================================
+# DATASET
+# =============================================================================
+
+dataset:
+  name: "microgrid"
+  dt: 0.01
+
+  # Sequence length
+  l_max: 100
+
+  # Dataset sizes
+  n_train: 30000
+  n_test: 200
+
+  # Dataloader
+  batch_size: 32
+  shuffle: true
+  verbose: false
+
+  # APRBS control signal parameters
+  control_min: -1.0
+  control_max: 1.0
+  hold_prob: 0.8
+
+# =============================================================================
+# S4 MODEL
+# =============================================================================
+
+s4_model:
+  d_model: 256
+  n_layers: 4
+  N: 64
+  dropout: 0.0
+  prenorm: true
+  embedding: false
+  decode: false
+
+# =============================================================================
+# S4 TRAINING
+# =============================================================================
+
+s4_train:
+  epochs: 40
+  lr: 0.001
+  weight_decay: 0.0
+  show_progress: false
+
+  # Optional quick debug settings
+  debug_epochs: 2
+  debug_n_train: 512
+  debug_n_test: 64
+  debug_batch_size: 16
+
+# =============================================================================
+# CONTROLLER MODEL
+# =============================================================================
+
+controller_model:
+  type: "GRUController"
+
+  d_y: 6
+  d_u: 3
+
+  encoder_dim: 128
+  gru_hidden_dim: 128
+  hidden_dim_1: 256
+  hidden_dim_2: 256
+  hidden_dim_3: 128
+
+  # Actuator saturation values tested during sweep
+  max_u_values:
+    - 30.0
+    - 100.0
+
+# =============================================================================
+# CONTROLLER TRAINING
+# =============================================================================
+
+controller_train:
+  epochs: 400
+  lr: 0.0001
+
+  batch_size: 32
+  seq_len: 100
+
+  target_type: "zero"
+  initial_state_min: -1.0
+  initial_state_max: 1.0
+
+  test_len: 150
+  test_mse_last_steps: 50
+
+  # Fixed real-physics test initial condition
+  test_initial_state:
+    - 1.0
+    - -0.8
+    - 0.5
+    - -0.5
+    - 1.2
+    - -1.0
+
+# =============================================================================
+# RAY / TACC SETTINGS
+# =============================================================================
+
+ray:
+  enabled: true
+
+  # A100 node has 3 GPUs.
+  # Recommended safe setting: 1.0
+  # Moderate oversubscription: 0.5
+  # Aggressive oversubscription: 0.333333
+  num_gpus_per_s4_worker: 1.0
+  num_gpus_per_controller_worker: 1.0
+
+  total_gpus: 3
+
+# =============================================================================
+# JAX / XLA SETTINGS
+# =============================================================================
+
+jax:
+  platform: "gpu"
+
+  # Must be applied before importing jax
+  xla_python_client_preallocate: false
+
+  # Good defaults:
+  # 0.70 for 1 worker/GPU
+  # 0.30 for 2 workers/GPU
+  # 0.20 for 3 workers/GPU
+  xla_python_client_mem_fraction: "0.70"
+
+# =============================================================================
+# SWEEP SETTINGS
+# =============================================================================
+
+sweep:
+  matrix_ids:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
